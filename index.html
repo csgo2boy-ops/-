@@ -750,7 +750,7 @@ const S={route:"list",notes:[],note:null,recs:[],media:null,counts:{},
   draft:"",draftTitle:"",draftUrl:"",draftFile:null,draftDropMedia:false,draftLoops:null,
   lrcOpen:false,lrcText:"",
   recTarget:null,sel:null,active:null,rate:1,showTip:true,mediaOpen:true,fine:null,cmp:null,
-  volOpen:false,volSrc:1,volRec:1,volDrag:false};
+  volOpen:false,volSrc:1,volRec:1,volDrag:false,isNew:false};
 const RATES=[0.5,0.75,1,1.25,1.5];
 
 const paras=t=>(t||"").split(/\n+/).map(s=>s.trim()).filter(Boolean);
@@ -1866,10 +1866,13 @@ async function beginRec(target){
   if(Src.kind==="embed") toast("外部播放器请手动暂停，免得录进去");
   try{ await Recorder.start(); }
   catch(err){
-    if(err&&err.name==="NotAllowedError")     toast("需要麦克风权限，请在地址栏权限设置里允许。");
-    else if(err&&err.message==="NO_API")      toast("浏览器拒绝录音。改用 localhost 或 https 打开。");
+    const n=err&&err.name;
+    if(n==="NotAllowedError"||n==="SecurityError") micHelp();
+    else if(n==="NotFoundError"||n==="OverconstrainedError") toast("找不到麦克风设备");
+    else if(n==="NotReadableError") toast("麦克风被别的程序占用了，关掉其它录音或通话再试");
+    else if(err&&err.message==="NO_API")      toast("浏览器拒绝录音。要用 https 网址打开。");
     else if(err&&err.message==="NO_RECORDER") toast("这个浏览器不支持录音。");
-    else                                      toast("打不开麦克风："+((err&&err.name)||"未知错误"));
+    else                                      toast("打不开麦克风："+(n||"未知错误"));
     return;
   }
   S.recTarget=target; S.sel=null; S.active=null; S.fine=null;
@@ -1940,7 +1943,7 @@ function leaveNote(){
   Practice.stop();
   stopTick(); Player.stop(); Recorder.release(); Src.clear(); Wave.reset(); RecWave.reset();
   S.note=null; S.recs=[]; S.media=null; S.sel=null; S.active=null; S.recTarget=null;
-  S.fine=null; S.cmp=null;
+  S.fine=null; S.cmp=null; S.isNew=false;
 }
 async function refreshCounts(){
   const all=await Store.allRecs();
@@ -2103,9 +2106,11 @@ document.addEventListener("click",async e=>{
 
   const act=t.dataset.act;
   if(act==="new"){
-    const n=await Store.createNote();
-    S.notes.unshift(n); S.note=n; S.recs=[]; S.media=null;
+    /* 先只在内存里造一个，按「完成」才真正写进库 */
+    S.note={id:uid(),title:"",text:"",sourceUrl:"",loops:[],updatedAt:Date.now()};
+    S.isNew=true; S.recs=[]; S.media=null;
     S.draft=""; S.draftTitle=""; S.draftUrl=""; S.draftFile=null; S.draftDropMedia=false;
+    S.draftLoops=null; S.lrcOpen=false; S.lrcText="";
     S.route="edit"; render();
   }
   else if(act==="open") await openNote(t.dataset.id);
@@ -2134,7 +2139,13 @@ document.addEventListener("click",async e=>{
     S.draftFile=null; S.draftDropMedia=false; S.draftLoops=null;
     S.lrcOpen=false; S.lrcText=""; S.route="edit"; render();
   }
-  else if(act==="cancel"){ S.route="note"; render(); }
+  else if(act==="cancel"){
+    if(S.isNew){
+      S.isNew=false; leaveNote();
+      S.notes=await Store.listNotes(); await refreshCounts();
+      S.route="list"; render();
+    }else{ S.route="note"; render(); }
+  }
   else if(act==="pickfile") document.getElementById("filepick").click();
   else if(act==="dropfile"){ S.draftFile=null; S.draftDropMedia=true; render(); }
   else if(act==="picklrc") document.getElementById("lrcpick").click();
@@ -2146,6 +2157,16 @@ document.addEventListener("click",async e=>{
     S.note.text=S.draft;
     S.note.title=S.draftTitle.trim();
     S.note.sourceUrl=S.draftUrl.trim();
+
+    /* 新建但什么都没填，就当作没建过 */
+    if(S.isNew&&!S.note.text.trim()&&!S.note.title&&!S.note.sourceUrl&&!S.draftFile){
+      S.isNew=false; leaveNote();
+      S.notes=await Store.listNotes(); await refreshCounts();
+      S.route="list"; render();
+      toast("空的，就没保存");
+      return;
+    }
+
     if(S.draftFile){
       await Store.putMedia({noteId:S.note.id,name:S.draftFile.name,
         type:S.draftFile.type||"audio/mpeg",blob:S.draftFile});
@@ -2154,6 +2175,7 @@ document.addEventListener("click",async e=>{
     S.note.hasMedia=!!S.media;
     if(S.draftLoops){ S.note.loops=S.draftLoops; S.draftLoops=null; }
     await Store.saveNote(S.note);
+    if(S.isNew){ S.isNew=false; S.notes.unshift(S.note); }
     S.draftFile=null; S.draftDropMedia=false;
     S.lrcOpen=false; S.lrcText="";
     S.route="note"; S.sel=null; S.fine=null;
@@ -2373,9 +2395,11 @@ function openSheet(first){
 
     <h3>用不了的时候</h3>
     <ul>
-      <li>录不了音：需要用 https 网址打开，并允许麦克风权限</li>
+      <li>录不了音：多半是之前拒绝过权限。再点一次录音按钮，会弹出针对你设备的处理步骤</li>
       <li>YouTube 显示错误 153：页面不是通过 https 打开的</li>
       <li>打开是白屏：关掉其它开着本应用的标签页再刷新</li>
+      <li>浏览器提示网站可疑：这个网址用的是免费共享域名，会被一些安全软件连带标记，
+      跟本站内容无关。介意的话可以换成自己的域名</li>
     </ul>
 
     <button class="close" data-act="closesheet">${first?"知道了，开始用":"关闭"}</button>`;
@@ -2391,6 +2415,47 @@ async function maybeRemindBackup(){
   if(days<7) return;
   toast(last?"距上次备份已经 "+Math.floor(days)+" 天了":"已经录了 "+recs.length+" 段，建议备份一次",
     {label:"去备份",fn:async()=>{ await doBackup(); }});
+}
+
+function micHelp(){
+  const ios=isIOS(), standalone=isStandalone();
+  let steps;
+  if(ios&&standalone){
+    steps=`<h3>在 iPhone / iPad 上</h3>
+      <p>你现在是从主屏幕图标打开的。iOS 把这种情况当成一个独立 App 来管权限：</p>
+      <ul>
+        <li>打开系统「<b>设定</b>」，一直往下滑，找到名字叫「<b>跟读笔记</b>」的那一项</li>
+        <li>点进去，把「<b>麦克风</b>」打开</li>
+        <li>回到本应用，完全关掉再重新打开</li>
+      </ul>
+      <p>如果设定里找不到这一项，说明系统还没记录过这个权限。
+      可以先用 <b>Safari 浏览器</b>打开同一个网址，在那里录一次音、允许权限，之后主屏幕上的图标通常就能用了。</p>`;
+  }else if(ios){
+    steps=`<h3>在 iPhone / iPad 的 Safari 上</h3>
+      <ul>
+        <li>点网址左边的「<b>ᴀA</b>」按钮 → <b>网站设定</b> → 把「麦克风」改成<b>允许</b></li>
+        <li>或者：系统「设定」→「Safari」→「麦克风」，确认没有整体禁用</li>
+        <li>改完刷新一次页面</li>
+      </ul>
+      <p>另外确认系统「设定 → 隐私权与安全性 → 麦克风」里，Safari 是开着的。</p>`;
+  }else{
+    steps=`<h3>在 Android / 电脑的 Chrome 上</h3>
+      <ul>
+        <li>点网址左边的<b>锁</b>或<b>设定</b>图标 → <b>权限</b> → 把「麦克风」改成允许</li>
+        <li>手机上还要确认：系统设定 → 应用 → Chrome → 权限 → 麦克风已开启</li>
+        <li>改完刷新一次页面</li>
+      </ul>`;
+  }
+  const box=document.getElementById("sheetbox");
+  box.innerHTML=`
+    <h2>麦克风打不开</h2>
+    <p>浏览器没有弹出询问，而是直接拒绝了——通常是因为<b>之前拒绝过一次</b>，
+    浏览器把这个选择记住了，之后就不再问。需要手动改回来。</p>
+    ${steps}
+    <p style="margin-top:14px;color:var(--ink-faint);font-size:13px">
+    录音全程在你的设备上完成，音频不会上传到任何地方。</p>
+    <button class="close" data-act="closesheet">知道了</button>`;
+  document.getElementById("sheet").classList.add("show");
 }
 
 /* ═══ Service Worker ═══ */

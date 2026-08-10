@@ -2,7 +2,7 @@
    策略：能联网时永远拿最新的，断网时用上次缓存的。
    录音和笔记存在 IndexedDB 里，跟这里的缓存无关，清缓存不会丢数据。 */
 
-const VERSION = "v2";
+const VERSION = "v3";
 const CACHE = "readalong-" + VERSION;
 
 /* 应用外壳：这几个文件缓存下来，断网也能打开 */
