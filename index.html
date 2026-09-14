@@ -52,7 +52,7 @@ main{flex:1;padding:4px 18px calc(env(safe-area-inset-bottom) + 36px)}
 .tag-filter::-webkit-scrollbar { display: none; }
 .tag-filter button { padding:5px 12px; border-radius:14px; font-size:13.5px; background:var(--card); border:1px solid var(--rule); color:var(--ink-soft); transition:all .2s;}
 .tag-filter button.on { background:var(--ink); color:var(--card); border-color:var(--ink); font-weight:500;}
-.tag-chip { display:inline-block; font-size:12px; padding:2px 8px; border-radius:6px; background:var(--sel); color:var(--mark); margin-right:6px; margin-top:6px; }
+.tag-chip { display:inline-flex; align-items:center; font-size:12px; padding:2px 8px; border-radius:6px; margin-right:6px; margin-top:6px; }
 
 #volrow{border-bottom:1px solid var(--rule);background:rgba(247,248,249,.97)}
 :root[data-theme="dark"] #volrow { background:rgba(18,22,32,.97); }
@@ -111,7 +111,6 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border:none;border-ra
   input[type=range]::-webkit-slider-thumb{width:17px;height:17px;margin-top:-7px}
   input[type=range]::-moz-range-thumb{width:17px;height:17px}
   .note-row{padding:18px 0}
-  .note-wrap .note-dots { padding: 0 16px; }
 }
 
 /* ══ 平板与大屏触屏设备 ══ */
@@ -184,15 +183,15 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border:none;border-ra
 .notice code{background:var(--sel);border-radius:4px;padding:1px 5px;font-size:12.5px}
 @media (prefers-reduced-motion:reduce){#srcmedia{transition:none}}
 
-/* 主頁清單項目 */
+/* 主頁清單項目 & 刪除按鈕 */
 .note-wrap { display:flex; align-items:stretch; border-bottom:1px solid var(--rule); transition: background .15s;}
 .note-wrap:hover { background: rgba(0,0,0,0.02); }
 :root[data-theme="dark"] .note-wrap:hover { background: rgba(255,255,255,0.02); }
 .note-row{display:block; flex:1; text-align:left; padding:15px 0;}
 .note-row .t{font-size:16px;font-weight:500;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .note-row .m{font-size:13px;color:var(--ink-faint);display:flex;gap:10px;align-items:center}
-.note-wrap .note-dots { padding: 0 12px; color:var(--ink-faint); display:flex; align-items:center; justify-content:center; transition: color .2s;}
-.note-wrap .note-dots:hover { color:var(--live); }
+.del-btn { color:var(--live); border:1px solid var(--live); border-radius:6px; padding:5px 12px; font-size:13px; background:transparent; transition: .2s; height: 30px; display: flex; align-items: center; justify-content: center; }
+.del-btn:hover { background:var(--live); color:#fff; }
 
 .empty{padding:52px 8px;text-align:center;color:var(--ink-faint);font-size:15px;line-height:2}
 .steps{max-width:410px;margin:40px auto;padding:18px 20px;border:1px solid var(--rule);
@@ -267,7 +266,6 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border:none;border-ra
 .prac button.tog{color:var(--amber)}
 .prac button.tog.on{background:var(--amber);color:var(--card)}
 .ico{width:13px;height:13px;flex:none;display:block}
-.ico-lg { width:18px; height:18px;}
 
 .foot{margin-top:20px;padding-top:16px;border-top:1px solid var(--rule)}
 .foot .cnt{font-size:13px;color:var(--ink-faint);margin-bottom:14px}
@@ -440,6 +438,38 @@ const Store={
   async setKV(k,v){ return req(tx("kv","readwrite").put({k,v})); }
 };
 
+/* ═══ AudioContext 優化單例模式 ═══ */
+let sharedAC = null;
+function getAudioContext() {
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) throw new Error("no ac");
+  if (!sharedAC) sharedAC = new AC();
+  if (sharedAC.state === 'suspended') sharedAC.resume();
+  return sharedAC;
+}
+
+/* ═══ MediaSession API 鎖屏控制 ═══ */
+function updateMediaSession() {
+  if (!('mediaSession' in navigator)) return;
+  if (S.route === 'note' && S.note && Src.controllable) {
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: noteTitle(S.note),
+      artist: '跟讀筆記',
+      album: '我的練習'
+    });
+    navigator.mediaSession.setActionHandler('play', async () => {
+      if(Src.controllable) await Src.toggle();
+    });
+    navigator.mediaSession.setActionHandler('pause', () => {
+      Player.stop(); Src.pause();
+    });
+    navigator.mediaSession.setActionHandler('seekbackward', () => { if(Src.controllable) Src.jump(-5); });
+    navigator.mediaSession.setActionHandler('seekforward', () => { if(Src.controllable) Src.jump(5); });
+  } else {
+    navigator.mediaSession.metadata = null;
+  }
+}
+
 /* ═══ 录音 ═══ */
 function pickMime(){
   if(typeof MediaRecorder==="undefined") return null;
@@ -602,6 +632,7 @@ const Src={
     this.el.preservesPitch=true; this.el.mozPreservesPitch=true; this.el.webkitPreservesPitch=true;
     this.el.playbackRate=S.rate;
     this.el.volume=Math.max(0,Math.min(1,S.volSrc));
+    updateMediaSession();
   },
   async loadYT(id,startAt){
     if(location.protocol!=="http:"&&location.protocol!=="https:"){
@@ -636,6 +667,7 @@ const Src={
             try{ this.yt.setPlaybackRate(S.rate); }catch(_){}
             this.setVolume(S.volSrc);
             renderSrcBar(); this.startPoll();
+            updateMediaSession();
           },
           onStateChange:()=>renderSrcCtl(),
           onError:e=>{
@@ -745,7 +777,7 @@ const Loop={
   check(){
     if(!this.on||!Src.controllable) return;
     if(Src.paused()) return;
-    if(Date.now()-this.guard<250) return;          // 刚跳转，等播放器稳定
+    if(Date.now()-this.guard<250) return;
     const t=Src.now();
     if(t>=this.b||t<this.a-1){
       if(this.once){
@@ -774,7 +806,7 @@ const Loop={
 
 /* ═══ 状态 ═══ */
 const S={route:"list",notes:[],note:null,recs:[],media:null,counts:{},
-  draft:"",draftTitle:"",draftUrl:"",draftFile:null,draftDropMedia:false,draftLoops:null,draftTags:"",
+  draft:"",draftTitle:"",draftUrl:"",draftFile:null,draftDropMedia:false,draftLoops:null,draftTags:[],
   lrcOpen:false,lrcText:"", activeTag:null,
   recTarget:null,sel:null,active:null,rate:1,showTip:true,mediaOpen:true,fine:null,cmp:null,
   volOpen:false,volSrc:1,volRec:1,volDrag:false,isNew:false,theme:"light"};
@@ -803,7 +835,6 @@ const loopCovering=(pi,s,e)=>loopsOf(pi).find(l=>l.start<=s&&l.end>=e);
 const loopExact=(pi,s,e)=>loopsOf(pi).find(l=>l.start===s&&l.end===e);
 const loopById=id=>loops().find(l=>l.id===id);
 
-/* 终点：没标的话用后面最近一个循环的起点，再不行就默认时长 */
 function loopEnd(lp){
   if(typeof lp.b==="number"&&lp.b>lp.a) return lp.b;
   let best=Infinity;
@@ -866,7 +897,6 @@ function parseLRC(text){
 }
 const lrcNorm=s=>String(s).toLowerCase().replace(/[^\p{L}\p{N}]/gu,"");
 
-/* 把 LRC 的时间贴到正文的行上 */
 function lrcToLoops(lrc,list){
   const off=lrc.offset, made=[], used={};
   let hit=0;
@@ -931,9 +961,7 @@ const Wave={
     this.state="busy";
     try{
       const buf=await blob.arrayBuffer();
-      const AC=window.AudioContext||window.webkitAudioContext;
-      if(!AC) throw new Error("no ac");
-      const ctx=new AC();
+      const ctx=getAudioContext();
       const audio=await new Promise((res,rej)=>{
         const p=ctx.decodeAudioData(buf,res,rej);
         if(p&&p.then) p.then(res,rej);
@@ -949,7 +977,6 @@ const Wave={
         pk[i]=mx;
       }
       this.peaks=pk; this.dur=audio.duration; this.state="ok";
-      try{ ctx.close(); }catch(_){}
     }catch(_){ this.reset(); this.state="fail"; }
     if(S.route==="note") render();
   },
@@ -1057,9 +1084,7 @@ function tickWave(){
 /* ═══ 录音波形 + 与原唱对照 ═══ */
 async function peaksOf(blob,sr){
   const buf=await blob.arrayBuffer();
-  const AC=window.AudioContext||window.webkitAudioContext;
-  if(!AC) throw new Error("no ac");
-  const ctx=new AC();
+  const ctx=getAudioContext();
   const audio=await new Promise((res,rej)=>{
     const p=ctx.decodeAudioData(buf,res,rej);
     if(p&&p.then) p.then(res,rej);
@@ -1074,7 +1099,6 @@ async function peaksOf(blob,sr){
     for(let j=s;j<e;j++){ const v=ch[j]<0?-ch[j]:ch[j]; if(v>mx) mx=v; }
     pk[i]=mx;
   }
-  try{ ctx.close(); }catch(_){}
   return {peaks:pk,dur:audio.duration};
 }
 
@@ -1094,7 +1118,6 @@ const RecWave={
   }
 };
 
-/* 起音点：第一次超过峰值 18% 的位置 */
 function onsetOf(pk,sr){
   let mx=0;
   for(let i=0;i<pk.length;i++) if(pk[i]>mx) mx=pk[i];
@@ -1344,7 +1367,6 @@ function selLabel(text,start,end){
   return "这一段";
 }
 
-/* ═══ 锚点修复 ═══ */
 function locate(list,r){
   if(r.full){
     const idxs=[]; list.forEach((p,i)=>{ if(p===r.text) idxs.push(i); });
@@ -1399,13 +1421,12 @@ async function repairAnchors(){
     if(ok){ if(l.stale){ delete l.stale; ch=true; } keep.push(l); continue; }
     const hit=locate(list,l);
     if(hit){ l.pi=hit.pi; l.start=hit.start; l.end=hit.end; delete l.stale; ch=true; keep.push(l); }
-    else ch=true;                                  // 找不到就丢掉这个循环点
+    else ch=true;
   }
   if(ch){ S.note.loops=keep; await Store.saveNote(S.note); }
   return {fixed,lost};
 }
 
-/* 旧版 marks 迁移到 loops */
 async function migrateMarks(){
   if(!S.note||!S.note.marks) return;
   const list=paras(S.note.text);
@@ -1422,7 +1443,6 @@ async function migrateMarks(){
   await Store.saveNote(S.note);
 }
 
-/* ═══ 提示条 ═══ */
 let toastTimer;
 function hideToast(){
   document.getElementById("toast").classList.remove("show","act");
@@ -1447,7 +1467,7 @@ const ICON={
   stop:'<svg class="ico" viewBox="0 0 16 16" fill="currentColor"><rect x="3.5" y="3.5" width="9" height="9" rx="1.6"/></svg>',
   pause:'<svg class="ico" viewBox="0 0 16 16" fill="currentColor"><rect x="4" y="3" width="3" height="10" rx="1"/><rect x="9" y="3" width="3" height="10" rx="1"/></svg>',
   mic:'<svg class="ico" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.6c-1.2 0-2.1 1-2.1 2.1v4.2c0 1.2 1 2.1 2.1 2.1s2.1-1 2.1-2.1V3.7c0-1.2-1-2.1-2.1-2.1z"/><path d="M12.4 7.2v.7A4.4 4.4 0 0 1 8 12.3a4.4 4.4 0 0 1-4.4-4.4v-.7H2.3v.7c0 2.9 2.2 5.3 5 5.6v1.5h1.4v-1.5c2.8-.3 5-2.7 5-5.6v-.7h-1.3z"/></svg>',
-  trash:'<svg class="ico" viewBox="0 0 16 16" fill="currentColor"><path d="M6.2 1.4h3.6c.4 0 .7.3.7.7v.7h3c.4 0 .7.3.7.7s-.3.7-.7.7h-.5l-.7 9c0 .6-.5 1-1.1 1H4.8c-.6 0-1.1-.4-1.1-1l-.7-9h-.5c-.4 0-.7-.3-.7-.7s.3-.7.7-.7h3v-.7c0-.4.3-.7.7-.7z"/></svg>',
+  trash:'<svg class="ico" viewBox="0 0 16 16" fill="currentColor"><path d="M6.2 1.4h3.6c.4 0 .7.3.7.7v.7h3c.4 0 .7.3.7.7s-.3.7-.7.7h-.5l-.7 9c0 .6-.5 1-1.1 1H4.8c-.6 0-1.1-.4-1.1-1l-.7-9h-.5c-.4 0-.7-.3-.7-.7s.3-.7.7-.7h3v-.7c0-.4.3-.7.7-.7h3v-.7c0-.4.3-.7.7-.7z"/></svg>',
   loop:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.4 6.6A4.6 4.6 0 0 1 8 3.4h4.6"/><path d="M10.8 1.6 12.6 3.4 10.8 5.2"/><path d="M12.6 9.4A4.6 4.6 0 0 1 8 12.6H3.4"/><path d="M5.2 10.8 3.4 12.6 5.2 14.4"/></svg>',
   note:'<svg class="ico" viewBox="0 0 16 16" fill="currentColor"><path d="M13.5 1.6 5.8 3.2v7.3a2.6 2.6 0 1 0 1.3 2.2V5.6l5.1-1v4a2.6 2.6 0 1 0 1.3 2.2z"/></svg>',
   vol:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7.4 2.6 4.2 5.4H2v5.2h2.2l3.2 2.8z" fill="currentColor"/><path d="M10.4 5.8a3 3 0 0 1 0 4.4"/><path d="M12.4 3.6a6 6 0 0 1 0 8.8"/></svg>',
@@ -1456,11 +1476,9 @@ const ICON={
   link:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6.5 9.5a2.6 2.6 0 0 0 3.7 0l2-2a2.6 2.6 0 0 0-3.7-3.7l-.9.9"/><path d="M9.5 6.5a2.6 2.6 0 0 0-3.7 0l-2 2a2.6 2.6 0 0 0 3.7 3.7l.9-.9"/></svg>',
   moon:'<svg class="ico" viewBox="0 0 16 16" fill="currentColor"><path d="M8 .5c.2 0 .5.1.7.2.2.1.2.4.1.6a5.5 5.5 0 0 0 4.9 7.9c.2 0 .5 0 .6-.1.2-.1.5 0 .6.2s0 .5-.2.6A7.5 7.5 0 1 1 8 .5z"/></svg>',
   sun:'<svg class="ico" viewBox="0 0 16 16" fill="currentColor"><path d="M8 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0-10V.5M8 15.5V14M14 8h1.5M.5 8H2m10.6-4.6-1.1 1.1M3.4 12.6l1.1-1.1m7.1.5-1.1-1.1M3.4 3.4l1.1 1.1"/></svg>',
-  download:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v9m0 0-3-3m3 3 3-3m-6 5h6"/></svg>',
-  dots:'<svg class="ico ico-lg" viewBox="0 0 16 16" fill="currentColor"><path d="M8 4a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm0 5.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm0 5.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"/></svg>'
+  download:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v9m0 0-3-3m3 3 3-3m-6 5h6"/></svg>'
 };
 
-/* ═══ 渲染 ═══ */
 const bar=()=>document.getElementById("bar");
 const view=()=>document.getElementById("view");
 
@@ -1502,20 +1520,24 @@ function renderList(){
   }
 
   // 整理所有標籤
-  const allTags = new Set();
-  S.notes.forEach(n => (n.tags||[]).forEach(t => allTags.add(t)));
-  const tagArr = Array.from(allTags);
+  const allTagsMap = new Map();
+  S.notes.forEach(n => (n.tags||[]).forEach(t => {
+    const text = typeof t === 'string' ? t : t.text;
+    const color = typeof t === 'string' ? '#4B8FE3' : t.color;
+    if(!allTagsMap.has(text)) allTagsMap.set(text, color);
+  }));
+  const tagArr = Array.from(allTagsMap.keys());
 
   let filterHtml = "";
   if(tagArr.length > 0) {
     filterHtml = `<div class="tag-filter">
       <button class="${S.activeTag===null?'on':''}" data-act="settag" data-tag="">全部</button>
-      ${tagArr.map(t => `<button class="${S.activeTag===t?'on':''}" data-act="settag" data-tag="${esc(t)}">${esc(t)}</button>`).join("")}
+      ${tagArr.map(text => `<button class="${S.activeTag===text?'on':''}" data-act="settag" data-tag="${esc(text)}">${esc(text)}</button>`).join("")}
     </div>`;
   }
 
   // 過濾筆記
-  const filteredNotes = S.activeTag ? S.notes.filter(n => (n.tags||[]).includes(S.activeTag)) : S.notes;
+  const filteredNotes = S.activeTag ? S.notes.filter(n => (n.tags||[]).some(t => (typeof t === 'string' ? t : t.text) === S.activeTag)) : S.notes;
 
   view().innerHTML = filterHtml + filteredNotes.map(n => {
     const c=S.counts[n.id]||0;
@@ -1523,7 +1545,11 @@ function renderList(){
         year: 'numeric', month: '2-digit', day: '2-digit',
         hour: '2-digit', minute: '2-digit', hour12: false
     });
-    const tagHtml = (n.tags||[]).map(t => `<span class="tag-chip">${esc(t)}</span>`).join("");
+    const tagHtml = (n.tags||[]).map(t => {
+      const text = typeof t === 'string' ? t : t.text;
+      const color = typeof t === 'string' ? '#4B8FE3' : t.color;
+      return `<span class="tag-chip" style="background-color:${color}22; color:${color}; border: 1px solid ${color}44;">${esc(text)}</span>`;
+    }).join("");
     return `
     <div class="note-wrap">
       <button class="note-row" data-act="open" data-id="${n.id}">
@@ -1532,9 +1558,11 @@ function renderList(){
           ${c?`<span>${c} 段录音</span>`:""}
           ${(n.hasMedia||n.sourceUrl)?ICON.note:""}
         </div>
-        ${tagHtml ? `<div>${tagHtml}</div>` : ''}
+        ${tagHtml ? `<div style="margin-top:2px;">${tagHtml}</div>` : ''}
       </button>
-      <button class="note-dots" data-act="delnotequick" data-id="${n.id}" aria-label="刪除筆記">${ICON.dots}</button>
+      <div style="padding: 0 16px; display:flex; align-items:center; justify-content:center;">
+        <button class="del-btn" data-act="delnotequick" data-id="${n.id}">刪除</button>
+      </div>
     </div>`;
   }).join("");
 }
@@ -1552,7 +1580,22 @@ function renderEdit(){
     :info.type==="link"?`<span class="badge" style="color:var(--ink-faint);background:var(--sel)">只能新标签打开</span>`:"";
   view().innerHTML=`
     <input class="ti" id="ti" type="text" placeholder="标题（留空就用第一行）" value="${esc(S.draftTitle)}">
-    <input class="ti" id="tagsti" type="text" placeholder="標籤分類 (選填，多個標籤請用逗號分隔)" value="${esc(S.draftTags)}" style="font-size:15px; font-weight:normal;">
+    
+    <div class="row" style="margin-bottom:8px;">
+      <input class="ti" id="tag_text" type="text" placeholder="輸入自訂標籤..." style="margin-bottom:0; flex:1; font-size:15px; font-weight:normal;" maxlength="15">
+      <input type="color" id="tag_color" value="#4B8FE3" style="width:38px; height:38px; border:1px solid var(--rule); border-radius:8px; padding:2px; cursor:pointer; background:var(--card); flex:none;" title="選擇標籤顏色">
+      <button class="fbtn" data-act="adddrafttag">加入</button>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; min-height:24px;">
+      ${S.draftTags.map((t, i) => {
+        const color = typeof t === 'string' ? '#4B8FE3' : t.color;
+        const text = typeof t === 'string' ? t : t.text;
+        return `<span class="tag-chip" style="background-color:${color}22; color:${color}; border:1px solid ${color}44;">
+          ${esc(text)} <b data-act="deldrafttag" data-idx="${i}" style="cursor:pointer; margin-left:4px; font-size:14px; font-weight:normal;">&times;</b>
+        </span>`;
+      }).join("")}
+    </div>
+
     <textarea id="ta" placeholder="贴上歌词或课文。&#10;换行就是分段。">${esc(S.draft)}</textarea>
     <p class="hint">每一行算一段。改动文字后，程序会按原文自动找回录音和循环点的位置，
     实在找不到的会列在笔记底部让你处理。</p>
@@ -1590,7 +1633,15 @@ function renderEdit(){
       导入时按文字匹配，标点和大小写不同不影响。</p>
     </div>`;
   document.getElementById("ti").addEventListener("input",e=>{S.draftTitle=e.target.value});
-  document.getElementById("tagsti").addEventListener("input",e=>{S.draftTags=e.target.value});
+  
+  // Tag input enter key support
+  document.getElementById("tag_text").addEventListener("keydown",e=>{
+    if(e.key === "Enter") {
+      e.preventDefault();
+      document.querySelector('[data-act="adddrafttag"]').click();
+    }
+  });
+
   const ta=document.getElementById("ta");
   ta.addEventListener("input",e=>{S.draft=e.target.value});
   const ui=document.getElementById("ui");
@@ -1719,7 +1770,6 @@ function ctlFor(pi,text){
     if(S.cmp===f.id) out.push(cmpBox(f,loopsOf(pi).find(l=>l.full)));
   }
 
-  /* ── 原曲循环 ── */
   if(Src.controllable){
     const own=loopsOf(pi);
     let show;
@@ -1890,242 +1940,9 @@ function renderSpeed(){
     `<button class="${r===S.rate?"on":""}" data-act="rate" data-r="${r}">${r}×</button>`).join("");
 }
 
-/* ═══ 录音计时 ═══ */
-let recTick=null;
-function startTick(){
-  stopTick();
-  recTick=setInterval(()=>{
-    const el=document.getElementById("rectimer");
-    if(el&&Recorder.active) el.textContent=fmt(Date.now()-Recorder.startedAt);
-  },TICK_MS);
-}
-function stopTick(){ if(recTick){clearInterval(recTick);recTick=null;} }
-
-/* ═══ 选区 ═══ */
-function readSelection(){
-  const s=window.getSelection();
-  if(!s||s.isCollapsed||s.rangeCount===0) return null;
-  const range=s.getRangeAt(0);
-  const node=range.commonAncestorContainer;
-  const host=(node.nodeType===1?node:node.parentElement);
-  const paraEl=host&&host.closest?host.closest(".para"):null;
-  if(!paraEl) return null;
-  let lo=Infinity, hi=-1;
-  paraEl.querySelectorAll("[data-tok]").forEach(el=>{
-    let hit=false;
-    try{ hit=range.intersectsNode(el); }catch(_){}
-    if(hit){ lo=Math.min(lo,+el.dataset.s); hi=Math.max(hi,+el.dataset.e); }
-  });
-  if(hi<0) return null;
-  return {pi:+paraEl.dataset.pi, start:lo, end:hi};
-}
-document.addEventListener("selectionchange",()=>{
-  if(S.route!=="note"||S.recTarget) return;
-  const sel=readSelection();
-  if(!sel) return;
-  if(S.sel&&S.sel.pi===sel.pi&&S.sel.start===sel.start&&S.sel.end===sel.end) return;
-  S.sel=sel; S.active=null; S.fine=null; render();
-});
-
-/* ═══ 录音流程 ═══ */
-async function beginRec(target){
-  if(S.recTarget) return;
-  Player.stop(); Loop.stop(); Src.pause();
-  if(Src.kind==="embed") toast("外部播放器请手动暂停，免得录进去");
-  try{ await Recorder.start(); }
-  catch(err){
-    const n=err&&err.name;
-    if(n==="NotAllowedError"||n==="SecurityError") micHelp();
-    else if(n==="NotFoundError"||n==="OverconstrainedError") toast("找不到麦克风设备");
-    else if(n==="NotReadableError") toast("麦克风被别的程序占用了，关掉其它录音或通话再试");
-    else if(err&&err.message==="NO_API")      toast("浏览器拒绝录音。要用 https 网址打开。");
-    else if(err&&err.message==="NO_RECORDER") toast("这个浏览器不支持录音。");
-    else                                      toast("打不开麦克风："+(n||"未知错误"));
-    return;
-  }
-  S.recTarget=target; S.sel=null; S.active=null; S.fine=null;
-  const s=window.getSelection(); if(s) s.removeAllRanges();
-  render(); startTick();
-}
-async function endRec(){
-  const t=S.recTarget;
-  if(!t) return;
-  stopTick();
-  const out=await Recorder.stop();
-  S.recTarget=null;
-  if(!out||out.durationMs<MIN_REC_MS){ render(); toast("太短了，没录上"); return; }
-  const p=paras(S.note.text)[t.pi]||"";
-  const kill=S.recs.filter(r=>{
-    if(r.stale||r.paraIndex!==t.pi) return false;
-    if(t.full) return !!r.full;
-    if(r.full) return false;
-    return r.start<t.end && r.end>t.start;
-  });
-  for(const r of kill) await Store.deleteRec(r.id);
-  if(kill.length) S.recs=S.recs.filter(r=>kill.indexOf(r)===-1);
-  const rec={id:uid(),noteId:S.note.id,paraIndex:t.pi,full:!!t.full,
-    start:t.start,end:t.end,text:t.full?p:p.slice(t.start,t.end),
-    blob:out.blob,durationMs:out.durationMs};
-  await Store.putRec(rec);
-  S.recs.push(rec);
-  S.active=t.full?null:rec.id;
-  render();
-  toast(kill.length>1 ? "已保存 "+fmt(out.durationMs)+"，替换了 "+kill.length+" 段重叠录音"
-                      : "已保存 "+fmt(out.durationMs));
-}
-
-/* ═══ 笔记开关 ═══ */
-function applySource(){
-  Src.clear(); Wave.reset();
-  if(S.media&&S.media.blob){
-    Src.loadAudio(S.media.blob,true);
-    Wave.build(S.media.blob);
-    return;
-  }
-  const info=parseSource((S.note.sourceUrl||"").trim());
-  if(info.type==="audio"){
-    Src.loadAudio(info.src,false);
-    fetch(info.src).then(r=>r.ok?r.blob():null)
-      .then(b=>{ if(b) Wave.build(b); else Wave.state="fail"; })
-      .catch(()=>{ Wave.state="fail"; });
-  }
-  else if(info.type==="yt") Src.loadYT(info.id,info.start);
-  else if(info.type==="embed") Src.loadEmbed(info);
-}
-async function openNote(id){
-  Src.clear(); Wave.reset(); RecWave.reset();
-  Practice.on=false; Practice.phase="idle"; Practice.clearTimer();
-  S.note=await Store.getNote(id);
-  if(!S.note.loops) S.note.loops=[];
-  if(!S.note.tags) S.note.tags=[];
-  await migrateMarks();
-  S.recs=await Store.listRecs(id);
-  S.media=await Store.getMedia(id);
-  S.route="note"; S.sel=null; S.active=null; S.fine=null; S.cmp=null;
-  const res=await repairAnchors();
-  render();
-  applySource();
-  render();
-  if(res.fixed) toast("有 "+res.fixed+" 段录音的位置自动对回来了");
-}
-function leaveNote(){
-  Practice.stop();
-  stopTick(); Player.stop(); Recorder.release(); Src.clear(); Wave.reset(); RecWave.reset();
-  S.note=null; S.recs=[]; S.media=null; S.sel=null; S.active=null; S.recTarget=null;
-  S.fine=null; S.cmp=null; S.isNew=false;
-}
-async function refreshCounts(){
-  const all=await Store.allRecs();
-  const c={}; all.forEach(r=>{ if(!r.stale) c[r.noteId]=(c[r.noteId]||0)+1; });
-  S.counts=c;
-}
-
-/* ═══ 备份 ═══ */
-const b64=blob=>new Promise((res,rej)=>{
-  const r=new FileReader();
-  r.onload=()=>res(String(r.result).split(",")[1]);
-  r.onerror=()=>rej(r.error);
-  r.readAsDataURL(blob);
-});
-function fromB64(s,type){
-  const bin=atob(s), arr=new Uint8Array(bin.length);
-  for(let i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
-  return new Blob([arr],{type:type||"audio/webm"});
-}
-async function doBackup(){
-  toast("正在打包，稍等…");
-  const notes=await Store.listNotes(), recs=await Store.allRecs();
-  const out={v:3,at:Date.now(),notes:notes.map(n=>({
-      id:n.id,title:n.title||"",text:n.text||"",sourceUrl:n.sourceUrl||"",
-      loops:n.loops||[],tags:n.tags||[],marks:n.marks||undefined,updatedAt:n.updatedAt})),recs:[]};
-  for(const r of recs){
-    if(!r.blob||!r.blob.size) continue;
-    out.recs.push({id:r.id,noteId:r.noteId,paraIndex:r.paraIndex,full:!!r.full,
-      start:r.start,end:r.end,text:r.text||"",stale:!!r.stale,durationMs:r.durationMs,
-      type:r.blob.type||"audio/webm",data:await b64(r.blob)});
-  }
-  const blob=new Blob([JSON.stringify(out)],{type:"application/json"});
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(blob);
-  a.download="跟读笔记备份-"+new Date().toISOString().slice(0,10)+".json";
-  a.click();
-  setTimeout(()=>URL.revokeObjectURL(a.href),4000);
-  await Store.setKV("lastBackup",Date.now());
-  toast("已导出 "+out.notes.length+" 篇、"+out.recs.length+" 段录音");
-}
-async function doRestore(file){
-  let data;
-  try{ data=JSON.parse(await file.text()); }
-  catch(_){ toast("这个文件读不了"); return; }
-  if(!data||!Array.isArray(data.notes)){ toast("不是备份文件"); return; }
-  if(!confirm("导入 "+data.notes.length+" 篇笔记？\n同 ID 的笔记会被覆盖。\n备份不含原曲文件，导入后需要重新选。")) return;
-  for(const n of data.notes) await Store.saveNote(Object.assign({},n,{loops:n.loops||[], tags:n.tags||[]}));
-  for(const r of (data.recs||[])){
-    try{
-      await Store.putRec({id:r.id,noteId:r.noteId,paraIndex:r.paraIndex,full:!!r.full,
-        start:r.start,end:r.end,text:r.text||"",stale:!!r.stale,
-        durationMs:r.durationMs,blob:fromB64(r.data,r.type)});
-    }catch(_){}
-  }
-  S.notes=await Store.listNotes(); await refreshCounts(); render();
-  toast("导入完成。本地原曲文件需要重新选择。");
-}
-
-/* ═══ LRC 导入导出 ═══ */
-function applyLRCText(text){
-  const lrc=parseLRC(text);
-  if(!lrc.lines.length){ toast("没读到时间戳，确认一下格式是不是 [00:12.34] 这种"); return; }
-  if(!paras(S.draft).length){
-    const seen={}, rows=[];
-    for(const l of lrc.lines){ if(seen[l.text]) continue; seen[l.text]=1; rows.push(l.text); }
-    S.draft=rows.join("\n");
-  }
-  const list=paras(S.draft);
-  const res=lrcToLoops(lrc,list);
-  if(!res.hit){
-    toast("时间轴读到了，但没有一行对得上正文。检查歌词是不是同一个版本");
-    render(); return;
-  }
-  S.draftLoops=res.loops;
-  S.lrcOpen=false; S.lrcText="";
-  render();
-  const words=res.loops.filter(l=>!l.full).length;
-  toast("对上了 "+res.hit+"/"+res.total+" 行"+(words?"，另有 "+words+" 个词级时间点":"")+"，按「完成」生效");
-}
-async function doExportLRC(){
-  const txt=buildLRC();
-  const blob=new Blob([txt],{type:"text/plain;charset=utf-8"});
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(blob);
-  a.download=(noteTitle(S.note).replace(/[\\/:*?"<>|]/g,"_"))+".lrc";
-  a.click();
-  setTimeout(()=>URL.revokeObjectURL(a.href),4000);
-  toast("导出了 "+loops().filter(l=>l.full).length+" 行时间轴");
-}
-
-/* ═══ 文件选择 ═══ */
-document.getElementById("filepick").addEventListener("change",e=>{
-  const f=e.target.files&&e.target.files[0]; e.target.value="";
-  if(!f) return;
-  if(f.size>MAX_FILE_MB*1024*1024){ toast("文件太大了（超过 "+MAX_FILE_MB+"MB）"); return; }
-  S.draftFile=f; S.draftDropMedia=false; render();
-});
-document.getElementById("jsonpick").addEventListener("change",async e=>{
-  const f=e.target.files&&e.target.files[0]; e.target.value="";
-  if(f) await doRestore(f);
-});
-document.getElementById("lrcpick").addEventListener("change",async e=>{
-  const f=e.target.files&&e.target.files[0]; e.target.value="";
-  if(!f) return;
-  try{ applyLRCText(await f.text()); }
-  catch(_){ toast("这个文件读不了"); }
-});
-
-/* ═══ 点击 ═══ */
 document.addEventListener("click",async e=>{
   if(e.target.closest("#toast")) return;
 
-  /* 说明面板 / 版本更新 */
   const sheetEl=document.getElementById("sheet");
   if(sheetEl.classList.contains("show")&&!e.target.closest(".sheetbox")){ closeSheet(); return; }
   const tt=e.target.closest("[data-act]");
@@ -2178,7 +1995,7 @@ document.addEventListener("click",async e=>{
     S.note={id:uid(),title:"",text:"",sourceUrl:"",loops:[],tags:[],updatedAt:Date.now()};
     S.isNew=true; S.recs=[]; S.media=null;
     S.draft=""; S.draftTitle=""; S.draftUrl=""; S.draftFile=null; S.draftDropMedia=false;
-    S.draftLoops=null; S.draftTags=""; S.lrcOpen=false; S.lrcText="";
+    S.draftLoops=null; S.draftTags=[]; S.lrcOpen=false; S.lrcText="";
     S.route="edit"; render();
   }
   else if(act==="open") await openNote(t.dataset.id);
@@ -2199,14 +2016,25 @@ document.addEventListener("click",async e=>{
     await Store.setKV("theme", S.theme);
     render();
   }
-  // 新增：處理首頁標籤過濾
+  else if(act==="adddrafttag"){
+    const input = document.getElementById("tag_text");
+    const colorInput = document.getElementById("tag_color");
+    const text = input.value.trim();
+    if(text){
+      S.draftTags.push({text: text, color: colorInput.value});
+      renderEdit();
+      setTimeout(()=>document.getElementById("tag_text").focus(), 30);
+    }
+  }
+  else if(act==="deldrafttag"){
+    S.draftTags.splice(+t.dataset.idx, 1);
+    renderEdit();
+  }
   else if(act==="settag"){
     S.activeTag = t.dataset.tag || null;
     render();
   }
-  // 新增：處理首頁快捷刪除
   else if(act==="delnotequick"){
-    // 阻止事件冒泡被 data-act="open" 觸發
     e.stopPropagation(); 
     if(confirm("確定要刪除這篇筆記嗎？\n(包含所有錄音和設定，無法復原)")){
       const id = t.dataset.id;
@@ -2231,7 +2059,7 @@ document.addEventListener("click",async e=>{
   else if(act==="edit"){
     Player.stop(); Loop.stop(); Src.pause();
     S.draft=S.note.text; S.draftTitle=S.note.title||""; S.draftUrl=S.note.sourceUrl||"";
-    S.draftTags=(S.note.tags||[]).join(", ");
+    S.draftTags=(S.note.tags||[]).map(t => typeof t === 'string' ? {text: t, color: '#4B8FE3'} : t);
     S.draftFile=null; S.draftDropMedia=false; S.draftLoops=null;
     S.lrcOpen=false; S.lrcText=""; S.route="edit"; render();
   }
@@ -2253,8 +2081,7 @@ document.addEventListener("click",async e=>{
     S.note.text=S.draft;
     S.note.title=S.draftTitle.trim();
     S.note.sourceUrl=S.draftUrl.trim();
-    // 儲存標籤（支援中英文逗號分隔，並過濾掉空白）
-    S.note.tags = S.draftTags.split(/[,，]+/).map(x=>x.trim()).filter(Boolean);
+    S.note.tags = S.draftTags;
 
     if(S.isNew&&!S.note.text.trim()&&!S.note.title&&!S.note.sourceUrl&&!S.draftFile){
       S.isNew=false; leaveNote();
@@ -2274,7 +2101,7 @@ document.addEventListener("click",async e=>{
     await Store.saveNote(S.note);
     if(S.isNew){ S.isNew=false; S.notes.unshift(S.note); }
     S.draftFile=null; S.draftDropMedia=false;
-    S.draftTags="";
+    S.draftTags=[];
     S.lrcOpen=false; S.lrcText="";
     S.route="note"; S.sel=null; S.fine=null;
     const res=await repairAnchors();
