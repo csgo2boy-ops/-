@@ -111,6 +111,7 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border:none;border-ra
   input[type=range]::-webkit-slider-thumb{width:17px;height:17px;margin-top:-7px}
   input[type=range]::-moz-range-thumb{width:17px;height:17px}
   .note-row{padding:18px 0}
+  .note-wrap .note-dots { padding: 0 16px; }
 }
 
 /* ══ 平板与大屏触屏设备 ══ */
@@ -1462,23 +1463,6 @@ function toast(msg,action){
   toastTimer=setTimeout(hideToast,action?UNDO_MS:TOAST_MS);
 }
 
-const ICON={
-  play:'<svg class="ico" viewBox="0 0 16 16" fill="currentColor"><path d="M4.5 2.8v10.4c0 .5.5.8 1 .5l8.2-5.2c.4-.3.4-.8 0-1L5.5 2.3c-.5-.3-1 0-1 .5z"/></svg>',
-  stop:'<svg class="ico" viewBox="0 0 16 16" fill="currentColor"><rect x="3.5" y="3.5" width="9" height="9" rx="1.6"/></svg>',
-  pause:'<svg class="ico" viewBox="0 0 16 16" fill="currentColor"><rect x="4" y="3" width="3" height="10" rx="1"/><rect x="9" y="3" width="3" height="10" rx="1"/></svg>',
-  mic:'<svg class="ico" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.6c-1.2 0-2.1 1-2.1 2.1v4.2c0 1.2 1 2.1 2.1 2.1s2.1-1 2.1-2.1V3.7c0-1.2-1-2.1-2.1-2.1z"/><path d="M12.4 7.2v.7A4.4 4.4 0 0 1 8 12.3a4.4 4.4 0 0 1-4.4-4.4v-.7H2.3v.7c0 2.9 2.2 5.3 5 5.6v1.5h1.4v-1.5c2.8-.3 5-2.7 5-5.6v-.7h-1.3z"/></svg>',
-  trash:'<svg class="ico" viewBox="0 0 16 16" fill="currentColor"><path d="M6.2 1.4h3.6c.4 0 .7.3.7.7v.7h3c.4 0 .7.3.7.7s-.3.7-.7.7h-.5l-.7 9c0 .6-.5 1-1.1 1H4.8c-.6 0-1.1-.4-1.1-1l-.7-9h-.5c-.4 0-.7-.3-.7-.7s.3-.7.7-.7h3v-.7c0-.4.3-.7.7-.7h3v-.7c0-.4.3-.7.7-.7z"/></svg>',
-  loop:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.4 6.6A4.6 4.6 0 0 1 8 3.4h4.6"/><path d="M10.8 1.6 12.6 3.4 10.8 5.2"/><path d="M12.6 9.4A4.6 4.6 0 0 1 8 12.6H3.4"/><path d="M5.2 10.8 3.4 12.6 5.2 14.4"/></svg>',
-  note:'<svg class="ico" viewBox="0 0 16 16" fill="currentColor"><path d="M13.5 1.6 5.8 3.2v7.3a2.6 2.6 0 1 0 1.3 2.2V5.6l5.1-1v4a2.6 2.6 0 1 0 1.3 2.2z"/></svg>',
-  vol:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7.4 2.6 4.2 5.4H2v5.2h2.2l3.2 2.8z" fill="currentColor"/><path d="M10.4 5.8a3 3 0 0 1 0 4.4"/><path d="M12.4 3.6a6 6 0 0 1 0 8.8"/></svg>',
-  volx:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7.4 2.6 4.2 5.4H2v5.2h2.2l3.2 2.8z" fill="currentColor"/><path d="m10.6 6.2 3.2 3.6M13.8 6.2l-3.2 3.6"/></svg>',
-  chev:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg>',
-  link:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6.5 9.5a2.6 2.6 0 0 0 3.7 0l2-2a2.6 2.6 0 0 0-3.7-3.7l-.9.9"/><path d="M9.5 6.5a2.6 2.6 0 0 0-3.7 0l-2 2a2.6 2.6 0 0 0 3.7 3.7l.9-.9"/></svg>',
-  moon:'<svg class="ico" viewBox="0 0 16 16" fill="currentColor"><path d="M8 .5c.2 0 .5.1.7.2.2.1.2.4.1.6a5.5 5.5 0 0 0 4.9 7.9c.2 0 .5 0 .6-.1.2-.1.5 0 .6.2s0 .5-.2.6A7.5 7.5 0 1 1 8 .5z"/></svg>',
-  sun:'<svg class="ico" viewBox="0 0 16 16" fill="currentColor"><path d="M8 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0-10V.5M8 15.5V14M14 8h1.5M.5 8H2m10.6-4.6-1.1 1.1M3.4 12.6l1.1-1.1m7.1.5-1.1-1.1M3.4 3.4l1.1 1.1"/></svg>',
-  download:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v9m0 0-3-3m3 3 3-3m-6 5h6"/></svg>'
-};
-
 const bar=()=>document.getElementById("bar");
 const view=()=>document.getElementById("view");
 
@@ -1519,7 +1503,6 @@ function renderList(){
     return;
   }
 
-  // 整理所有標籤
   const allTagsMap = new Map();
   S.notes.forEach(n => (n.tags||[]).forEach(t => {
     const text = typeof t === 'string' ? t : t.text;
@@ -1536,7 +1519,6 @@ function renderList(){
     </div>`;
   }
 
-  // 過濾筆記
   const filteredNotes = S.activeTag ? S.notes.filter(n => (n.tags||[]).some(t => (typeof t === 'string' ? t : t.text) === S.activeTag)) : S.notes;
 
   view().innerHTML = filterHtml + filteredNotes.map(n => {
@@ -1634,7 +1616,6 @@ function renderEdit(){
     </div>`;
   document.getElementById("ti").addEventListener("input",e=>{S.draftTitle=e.target.value});
   
-  // Tag input enter key support
   document.getElementById("tag_text").addEventListener("keydown",e=>{
     if(e.key === "Enter") {
       e.preventDefault();
@@ -1939,6 +1920,230 @@ function renderSpeed(){
   sb.innerHTML=`<span class="lb">速度</span>`+RATES.map(r=>
     `<button class="${r===S.rate?"on":""}" data-act="rate" data-r="${r}">${r}×</button>`).join("");
 }
+
+let recTick=null;
+function startTick(){
+  stopTick();
+  recTick=setInterval(()=>{
+    const el=document.getElementById("rectimer");
+    if(el&&Recorder.active) el.textContent=fmt(Date.now()-Recorder.startedAt);
+  },TICK_MS);
+}
+function stopTick(){ if(recTick){clearInterval(recTick);recTick=null;} }
+
+function readSelection(){
+  const s=window.getSelection();
+  if(!s||s.isCollapsed||s.rangeCount===0) return null;
+  const range=s.getRangeAt(0);
+  const node=range.commonAncestorContainer;
+  const host=(node.nodeType===1?node:node.parentElement);
+  const paraEl=host&&host.closest?host.closest(".para"):null;
+  if(!paraEl) return null;
+  let lo=Infinity, hi=-1;
+  paraEl.querySelectorAll("[data-tok]").forEach(el=>{
+    let hit=false;
+    try{ hit=range.intersectsNode(el); }catch(_){}
+    if(hit){ lo=Math.min(lo,+el.dataset.s); hi=Math.max(hi,+el.dataset.e); }
+  });
+  if(hi<0) return null;
+  return {pi:+paraEl.dataset.pi, start:lo, end:hi};
+}
+document.addEventListener("selectionchange",()=>{
+  if(S.route!=="note"||S.recTarget) return;
+  const sel=readSelection();
+  if(!sel) return;
+  if(S.sel&&S.sel.pi===sel.pi&&S.sel.start===sel.start&&S.sel.end===sel.end) return;
+  S.sel=sel; S.active=null; S.fine=null; render();
+});
+
+async function beginRec(target){
+  if(S.recTarget) return;
+  Player.stop(); Loop.stop(); Src.pause();
+  if(Src.kind==="embed") toast("外部播放器请手动暂停，免得录进去");
+  try{ await Recorder.start(); }
+  catch(err){
+    const n=err&&err.name;
+    if(n==="NotAllowedError"||n==="SecurityError") micHelp();
+    else if(n==="NotFoundError"||n==="OverconstrainedError") toast("找不到麦克风设备");
+    else if(n==="NotReadableError") toast("麦克风被别的程序占用了，关掉其它录音或通话再试");
+    else if(err&&err.message==="NO_API")      toast("浏览器拒绝录音。要用 https 网址打开。");
+    else if(err&&err.message==="NO_RECORDER") toast("这个浏览器不支持录音。");
+    else                                      toast("打不开麦克风："+(n||"未知错误"));
+    return;
+  }
+  S.recTarget=target; S.sel=null; S.active=null; S.fine=null;
+  const s=window.getSelection(); if(s) s.removeAllRanges();
+  render(); startTick();
+}
+async function endRec(){
+  const t=S.recTarget;
+  if(!t) return;
+  stopTick();
+  const out=await Recorder.stop();
+  S.recTarget=null;
+  if(!out||out.durationMs<MIN_REC_MS){ render(); toast("太短了，没录上"); return; }
+  const p=paras(S.note.text)[t.pi]||"";
+  const kill=S.recs.filter(r=>{
+    if(r.stale||r.paraIndex!==t.pi) return false;
+    if(t.full) return !!r.full;
+    if(r.full) return false;
+    return r.start<t.end && r.end>t.start;
+  });
+  for(const r of kill) await Store.deleteRec(r.id);
+  if(kill.length) S.recs=S.recs.filter(r=>kill.indexOf(r)===-1);
+  const rec={id:uid(),noteId:S.note.id,paraIndex:t.pi,full:!!t.full,
+    start:t.start,end:t.end,text:t.full?p:p.slice(t.start,t.end),
+    blob:out.blob,durationMs:out.durationMs};
+  await Store.putRec(rec);
+  S.recs.push(rec);
+  S.active=t.full?null:rec.id;
+  render();
+  toast(kill.length>1 ? "已保存 "+fmt(out.durationMs)+"，替换了 "+kill.length+" 段重叠录音"
+                      : "已保存 "+fmt(out.durationMs));
+}
+
+function applySource(){
+  Src.clear(); Wave.reset();
+  if(S.media&&S.media.blob){
+    Src.loadAudio(S.media.blob,true);
+    Wave.build(S.media.blob);
+    return;
+  }
+  const info=parseSource((S.note.sourceUrl||"").trim());
+  if(info.type==="audio"){
+    Src.loadAudio(info.src,false);
+    fetch(info.src).then(r=>r.ok?r.blob():null)
+      .then(b=>{ if(b) Wave.build(b); else Wave.state="fail"; })
+      .catch(()=>{ Wave.state="fail"; });
+  }
+  else if(info.type==="yt") Src.loadYT(info.id,info.start);
+  else if(info.type==="embed") Src.loadEmbed(info);
+}
+async function openNote(id){
+  Src.clear(); Wave.reset(); RecWave.reset();
+  Practice.on=false; Practice.phase="idle"; Practice.clearTimer();
+  S.note=await Store.getNote(id);
+  if(!S.note.loops) S.note.loops=[];
+  if(!S.note.tags) S.note.tags=[];
+  await migrateMarks();
+  S.recs=await Store.listRecs(id);
+  S.media=await Store.getMedia(id);
+  S.route="note"; S.sel=null; S.active=null; S.fine=null; S.cmp=null;
+  const res=await repairAnchors();
+  render();
+  applySource();
+  render();
+  if(res.fixed) toast("有 "+res.fixed+" 段录音的位置自动对回来了");
+}
+function leaveNote(){
+  Practice.stop();
+  stopTick(); Player.stop(); Recorder.release(); Src.clear(); Wave.reset(); RecWave.reset();
+  S.note=null; S.recs=[]; S.media=null; S.sel=null; S.active=null; S.recTarget=null;
+  S.fine=null; S.cmp=null; S.isNew=false;
+}
+async function refreshCounts(){
+  const all=await Store.allRecs();
+  const c={}; all.forEach(r=>{ if(!r.stale) c[r.noteId]=(c[r.noteId]||0)+1; });
+  S.counts=c;
+}
+
+const b64=blob=>new Promise((res,rej)=>{
+  const r=new FileReader();
+  r.onload=()=>res(String(r.result).split(",")[1]);
+  r.onerror=()=>rej(r.error);
+  r.readAsDataURL(blob);
+});
+function fromB64(s,type){
+  const bin=atob(s), arr=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
+  return new Blob([arr],{type:type||"audio/webm"});
+}
+async function doBackup(){
+  toast("正在打包，稍等…");
+  const notes=await Store.listNotes(), recs=await Store.allRecs();
+  const out={v:3,at:Date.now(),notes:notes.map(n=>({
+      id:n.id,title:n.title||"",text:n.text||"",sourceUrl:n.sourceUrl||"",
+      loops:n.loops||[],tags:n.tags||[],marks:n.marks||undefined,updatedAt:n.updatedAt})),recs:[]};
+  for(const r of recs){
+    if(!r.blob||!r.blob.size) continue;
+    out.recs.push({id:r.id,noteId:r.noteId,paraIndex:r.paraIndex,full:!!r.full,
+      start:r.start,end:r.end,text:r.text||"",stale:!!r.stale,durationMs:r.durationMs,
+      type:r.blob.type||"audio/webm",data:await b64(r.blob)});
+  }
+  const blob=new Blob([JSON.stringify(out)],{type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="跟读笔记备份-"+new Date().toISOString().slice(0,10)+".json";
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  await Store.setKV("lastBackup",Date.now());
+  toast("已导出 "+out.notes.length+" 篇、"+out.recs.length+" 段录音");
+}
+async function doRestore(file){
+  let data;
+  try{ data=JSON.parse(await file.text()); }
+  catch(_){ toast("这个文件读不了"); return; }
+  if(!data||!Array.isArray(data.notes)){ toast("不是备份文件"); return; }
+  if(!confirm("导入 "+data.notes.length+" 篇笔记？\n同 ID 的笔记会被覆盖。\n备份不含原曲文件，导入后需要重新选。")) return;
+  for(const n of data.notes) await Store.saveNote(Object.assign({},n,{loops:n.loops||[], tags:n.tags||[]}));
+  for(const r of (data.recs||[])){
+    try{
+      await Store.putRec({id:r.id,noteId:r.noteId,paraIndex:r.paraIndex,full:!!r.full,
+        start:r.start,end:r.end,text:r.text||"",stale:!!r.stale,
+        durationMs:r.durationMs,blob:fromB64(r.data,r.type)});
+    }catch(_){}
+  }
+  S.notes=await Store.listNotes(); await refreshCounts(); render();
+  toast("导入完成。本地原曲文件需要重新选择。");
+}
+
+function applyLRCText(text){
+  const lrc=parseLRC(text);
+  if(!lrc.lines.length){ toast("没读到时间戳，确认一下格式是不是 [00:12.34] 这种"); return; }
+  if(!paras(S.draft).length){
+    const seen={}, rows=[];
+    for(const l of lrc.lines){ if(seen[l.text]) continue; seen[l.text]=1; rows.push(l.text); }
+    S.draft=rows.join("\n");
+  }
+  const list=paras(S.draft);
+  const res=lrcToLoops(lrc,list);
+  if(!res.hit){
+    toast("时间轴读到了，但没有一行对得上正文。检查歌词是不是同一个版本");
+    render(); return;
+  }
+  S.draftLoops=res.loops;
+  S.lrcOpen=false; S.lrcText="";
+  render();
+  const words=res.loops.filter(l=>!l.full).length;
+  toast("对上了 "+res.hit+"/"+res.total+" 行"+(words?"，另有 "+words+" 个词级时间点":"")+"，按「完成」生效");
+}
+async function doExportLRC(){
+  const txt=buildLRC();
+  const blob=new Blob([txt],{type:"text/plain;charset=utf-8"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download=(noteTitle(S.note).replace(/[\\/:*?"<>|]/g,"_"))+".lrc";
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  toast("导出了 "+loops().filter(l=>l.full).length+" 行时间轴");
+}
+
+document.getElementById("filepick").addEventListener("change",e=>{
+  const f=e.target.files&&e.target.files[0]; e.target.value="";
+  if(!f) return;
+  if(f.size>MAX_FILE_MB*1024*1024){ toast("文件太大了（超过 "+MAX_FILE_MB+"MB）"); return; }
+  S.draftFile=f; S.draftDropMedia=false; render();
+});
+document.getElementById("jsonpick").addEventListener("change",async e=>{
+  const f=e.target.files&&e.target.files[0]; e.target.value="";
+  if(f) await doRestore(f);
+});
+document.getElementById("lrcpick").addEventListener("change",async e=>{
+  const f=e.target.files&&e.target.files[0]; e.target.value="";
+  if(!f) return;
+  try{ applyLRCText(await f.text()); }
+  catch(_){ toast("这个文件读不了"); }
+});
 
 document.addEventListener("click",async e=>{
   if(e.target.closest("#toast")) return;
@@ -2253,7 +2458,6 @@ document.addEventListener("click",async e=>{
   }
 });
 
-/* ═══ 键盘 ═══ */
 document.addEventListener("keydown",async e=>{
   if(e.key==="Escape"&&document.getElementById("sheet").classList.contains("show")){
     closeSheet(); return;
@@ -2289,7 +2493,6 @@ document.addEventListener("keydown",async e=>{
 
 window.addEventListener("pagehide",()=>{Practice.stop();stopTick();Player.stop();Loop.stop();Recorder.release();Src.clear()});
 
-/* ═══ 说明面板 ═══ */
 function isStandalone(){
   return window.matchMedia("(display-mode: standalone)").matches||window.navigator.standalone===true;
 }
@@ -2395,7 +2598,6 @@ function micHelp(){
   document.getElementById("sheet").classList.add("show");
 }
 
-/* ═══ Service Worker ═══ */
 let swWaiting=null;
 function setupSW(){
   if(!("serviceWorker" in navigator)) return;
@@ -2422,7 +2624,6 @@ function setupSW(){
 function showNewVer(){ document.getElementById("newver").classList.add("show"); }
 function hideNewVer(){ document.getElementById("newver").classList.remove("show"); }
 
-/* ═══ 启动 ═══ */
 (async function(){
   try{ db=await openDB(); }
   catch(err){
@@ -2449,7 +2650,6 @@ function hideNewVer(){ document.getElementById("newver").classList.remove("show"
   S.volSrc=await Store.getKV("volSrc",1);
   S.volRec=await Store.getKV("volRec",1);
 
-  // 初始化深色模式
   S.theme=await Store.getKV("theme","light");
   document.documentElement.setAttribute('data-theme', S.theme);
 
