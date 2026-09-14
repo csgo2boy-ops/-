@@ -47,6 +47,13 @@ button{font-family:inherit;font-size:inherit;color:inherit;background:none;borde
 .tbtn.primary{background:var(--ink);color:var(--card);border-color:var(--ink)}
 main{flex:1;padding:4px 18px calc(env(safe-area-inset-bottom) + 36px)}
 
+/* 標籤分類 UI */
+.tag-filter { display:flex; gap:8px; padding: 0 18px 10px; overflow-x:auto; white-space:nowrap; border-bottom:1px solid var(--rule); scrollbar-width: none; }
+.tag-filter::-webkit-scrollbar { display: none; }
+.tag-filter button { padding:5px 12px; border-radius:14px; font-size:13.5px; background:var(--card); border:1px solid var(--rule); color:var(--ink-soft); transition:all .2s;}
+.tag-filter button.on { background:var(--ink); color:var(--card); border-color:var(--ink); font-weight:500;}
+.tag-chip { display:inline-block; font-size:12px; padding:2px 8px; border-radius:6px; background:var(--sel); color:var(--mark); margin-right:6px; margin-top:6px; }
+
 #volrow{border-bottom:1px solid var(--rule);background:rgba(247,248,249,.97)}
 :root[data-theme="dark"] #volrow { background:rgba(18,22,32,.97); }
 #volrow[hidden]{display:none}
@@ -104,6 +111,7 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border:none;border-ra
   input[type=range]::-webkit-slider-thumb{width:17px;height:17px;margin-top:-7px}
   input[type=range]::-moz-range-thumb{width:17px;height:17px}
   .note-row{padding:18px 0}
+  .note-wrap .note-dots { padding: 0 16px; }
 }
 
 /* ══ 平板与大屏触屏设备 ══ */
@@ -176,9 +184,16 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border:none;border-ra
 .notice code{background:var(--sel);border-radius:4px;padding:1px 5px;font-size:12.5px}
 @media (prefers-reduced-motion:reduce){#srcmedia{transition:none}}
 
-.note-row{display:block;width:100%;text-align:left;padding:15px 0;border-bottom:1px solid var(--rule)}
+/* 主頁清單項目 */
+.note-wrap { display:flex; align-items:stretch; border-bottom:1px solid var(--rule); transition: background .15s;}
+.note-wrap:hover { background: rgba(0,0,0,0.02); }
+:root[data-theme="dark"] .note-wrap:hover { background: rgba(255,255,255,0.02); }
+.note-row{display:block; flex:1; text-align:left; padding:15px 0;}
 .note-row .t{font-size:16px;font-weight:500;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .note-row .m{font-size:13px;color:var(--ink-faint);display:flex;gap:10px;align-items:center}
+.note-wrap .note-dots { padding: 0 12px; color:var(--ink-faint); display:flex; align-items:center; justify-content:center; transition: color .2s;}
+.note-wrap .note-dots:hover { color:var(--live); }
+
 .empty{padding:52px 8px;text-align:center;color:var(--ink-faint);font-size:15px;line-height:2}
 .steps{max-width:410px;margin:40px auto;padding:18px 20px;border:1px solid var(--rule);
   border-radius:12px;background:var(--card)}
@@ -252,6 +267,7 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border:none;border-ra
 .prac button.tog{color:var(--amber)}
 .prac button.tog.on{background:var(--amber);color:var(--card)}
 .ico{width:13px;height:13px;flex:none;display:block}
+.ico-lg { width:18px; height:18px;}
 
 .foot{margin-top:20px;padding-top:16px;border-top:1px solid var(--rule)}
 .foot .cnt{font-size:13px;color:var(--ink-faint);margin-bottom:14px}
@@ -403,7 +419,7 @@ const Store={
   async listNotes(){ return (await req(tx("notes","readonly").getAll())).sort((a,b)=>b.updatedAt-a.updatedAt); },
   async getNote(id){ return req(tx("notes","readonly").get(id)); },
   async saveNote(n){ n.updatedAt=Date.now(); await req(tx("notes","readwrite").put(n)); return n; },
-  async createNote(){ const n={id:uid(),title:"",text:"",sourceUrl:"",loops:[],updatedAt:Date.now()};
+  async createNote(){ const n={id:uid(),title:"",text:"",sourceUrl:"",loops:[],tags:[],updatedAt:Date.now()};
     await req(tx("notes","readwrite").put(n)); return n; },
   async deleteNote(id){
     const rs=await this.listRecs(id);
@@ -758,8 +774,8 @@ const Loop={
 
 /* ═══ 状态 ═══ */
 const S={route:"list",notes:[],note:null,recs:[],media:null,counts:{},
-  draft:"",draftTitle:"",draftUrl:"",draftFile:null,draftDropMedia:false,draftLoops:null,
-  lrcOpen:false,lrcText:"",
+  draft:"",draftTitle:"",draftUrl:"",draftFile:null,draftDropMedia:false,draftLoops:null,draftTags:"",
+  lrcOpen:false,lrcText:"", activeTag:null,
   recTarget:null,sel:null,active:null,rate:1,showTip:true,mediaOpen:true,fine:null,cmp:null,
   volOpen:false,volSrc:1,volRec:1,volDrag:false,isNew:false,theme:"light"};
 const RATES=[0.5,0.75,1,1.25,1.5];
@@ -1440,7 +1456,8 @@ const ICON={
   link:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6.5 9.5a2.6 2.6 0 0 0 3.7 0l2-2a2.6 2.6 0 0 0-3.7-3.7l-.9.9"/><path d="M9.5 6.5a2.6 2.6 0 0 0-3.7 0l-2 2a2.6 2.6 0 0 0 3.7 3.7l.9-.9"/></svg>',
   moon:'<svg class="ico" viewBox="0 0 16 16" fill="currentColor"><path d="M8 .5c.2 0 .5.1.7.2.2.1.2.4.1.6a5.5 5.5 0 0 0 4.9 7.9c.2 0 .5 0 .6-.1.2-.1.5 0 .6.2s0 .5-.2.6A7.5 7.5 0 1 1 8 .5z"/></svg>',
   sun:'<svg class="ico" viewBox="0 0 16 16" fill="currentColor"><path d="M8 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0-10V.5M8 15.5V14M14 8h1.5M.5 8H2m10.6-4.6-1.1 1.1M3.4 12.6l1.1-1.1m7.1.5-1.1-1.1M3.4 3.4l1.1 1.1"/></svg>',
-  download:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v9m0 0-3-3m3 3 3-3m-6 5h6"/></svg>'
+  download:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v9m0 0-3-3m3 3 3-3m-6 5h6"/></svg>',
+  dots:'<svg class="ico ico-lg" viewBox="0 0 16 16" fill="currentColor"><path d="M8 4a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm0 5.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm0 5.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"/></svg>'
 };
 
 /* ═══ 渲染 ═══ */
@@ -1473,6 +1490,7 @@ function renderList(){
     <button class="tbtn" data-act="restore">匯入</button>
     <button class="tbtn" data-act="backup">匯出</button>
     <button class="tbtn primary" data-act="new">新建</button>`;
+  
   if(!S.notes.length){
     view().innerHTML=`<div class="steps"><h3>怎么用</h3><ol>
       <li>点右上角「新建」，贴上歌词或课文</li>
@@ -1482,18 +1500,42 @@ function renderList(){
     </ol></div>`;
     return;
   }
-  view().innerHTML=S.notes.map(n=>{
+
+  // 整理所有標籤
+  const allTags = new Set();
+  S.notes.forEach(n => (n.tags||[]).forEach(t => allTags.add(t)));
+  const tagArr = Array.from(allTags);
+
+  let filterHtml = "";
+  if(tagArr.length > 0) {
+    filterHtml = `<div class="tag-filter">
+      <button class="${S.activeTag===null?'on':''}" data-act="settag" data-tag="">全部</button>
+      ${tagArr.map(t => `<button class="${S.activeTag===t?'on':''}" data-act="settag" data-tag="${esc(t)}">${esc(t)}</button>`).join("")}
+    </div>`;
+  }
+
+  // 過濾筆記
+  const filteredNotes = S.activeTag ? S.notes.filter(n => (n.tags||[]).includes(S.activeTag)) : S.notes;
+
+  view().innerHTML = filterHtml + filteredNotes.map(n => {
     const c=S.counts[n.id]||0;
     const formattedDate = new Date(n.updatedAt).toLocaleString('zh-CN', {
         year: 'numeric', month: '2-digit', day: '2-digit',
         hour: '2-digit', minute: '2-digit', hour12: false
     });
-    return `<button class="note-row" data-act="open" data-id="${n.id}">
-      <div class="t">${esc(noteTitle(n))}</div>
-      <div class="m"><span class="mono">${formattedDate}</span>
-        ${c?`<span>${c} 段录音</span>`:""}
-        ${(n.hasMedia||n.sourceUrl)?ICON.note:""}</div>
-    </button>`;
+    const tagHtml = (n.tags||[]).map(t => `<span class="tag-chip">${esc(t)}</span>`).join("");
+    return `
+    <div class="note-wrap">
+      <button class="note-row" data-act="open" data-id="${n.id}">
+        <div class="t">${esc(noteTitle(n))}</div>
+        <div class="m"><span class="mono">${formattedDate}</span>
+          ${c?`<span>${c} 段录音</span>`:""}
+          ${(n.hasMedia||n.sourceUrl)?ICON.note:""}
+        </div>
+        ${tagHtml ? `<div>${tagHtml}</div>` : ''}
+      </button>
+      <button class="note-dots" data-act="delnotequick" data-id="${n.id}" aria-label="刪除筆記">${ICON.dots}</button>
+    </div>`;
   }).join("");
 }
 
@@ -1510,6 +1552,7 @@ function renderEdit(){
     :info.type==="link"?`<span class="badge" style="color:var(--ink-faint);background:var(--sel)">只能新标签打开</span>`:"";
   view().innerHTML=`
     <input class="ti" id="ti" type="text" placeholder="标题（留空就用第一行）" value="${esc(S.draftTitle)}">
+    <input class="ti" id="tagsti" type="text" placeholder="標籤分類 (選填，多個標籤請用逗號分隔)" value="${esc(S.draftTags)}" style="font-size:15px; font-weight:normal;">
     <textarea id="ta" placeholder="贴上歌词或课文。&#10;换行就是分段。">${esc(S.draft)}</textarea>
     <p class="hint">每一行算一段。改动文字后，程序会按原文自动找回录音和循环点的位置，
     实在找不到的会列在笔记底部让你处理。</p>
@@ -1547,6 +1590,7 @@ function renderEdit(){
       导入时按文字匹配，标点和大小写不同不影响。</p>
     </div>`;
   document.getElementById("ti").addEventListener("input",e=>{S.draftTitle=e.target.value});
+  document.getElementById("tagsti").addEventListener("input",e=>{S.draftTags=e.target.value});
   const ta=document.getElementById("ta");
   ta.addEventListener("input",e=>{S.draft=e.target.value});
   const ui=document.getElementById("ui");
@@ -1719,8 +1763,6 @@ function ctlFor(pi,text){
   }
   return out.join("");
 }
-//... 下半部程式碼與原本邏輯相似，省略重複的方法 ...
-// (為避免過長，從這裡開始的邏輯保持與原版一模一樣，只有 click handler 有新增)
 
 function renderVol(){
   const row=document.getElementById("volrow");
@@ -1955,6 +1997,7 @@ async function openNote(id){
   Practice.on=false; Practice.phase="idle"; Practice.clearTimer();
   S.note=await Store.getNote(id);
   if(!S.note.loops) S.note.loops=[];
+  if(!S.note.tags) S.note.tags=[];
   await migrateMarks();
   S.recs=await Store.listRecs(id);
   S.media=await Store.getMedia(id);
@@ -1994,7 +2037,7 @@ async function doBackup(){
   const notes=await Store.listNotes(), recs=await Store.allRecs();
   const out={v:3,at:Date.now(),notes:notes.map(n=>({
       id:n.id,title:n.title||"",text:n.text||"",sourceUrl:n.sourceUrl||"",
-      loops:n.loops||[],marks:n.marks||undefined,updatedAt:n.updatedAt})),recs:[]};
+      loops:n.loops||[],tags:n.tags||[],marks:n.marks||undefined,updatedAt:n.updatedAt})),recs:[]};
   for(const r of recs){
     if(!r.blob||!r.blob.size) continue;
     out.recs.push({id:r.id,noteId:r.noteId,paraIndex:r.paraIndex,full:!!r.full,
@@ -2016,7 +2059,7 @@ async function doRestore(file){
   catch(_){ toast("这个文件读不了"); return; }
   if(!data||!Array.isArray(data.notes)){ toast("不是备份文件"); return; }
   if(!confirm("导入 "+data.notes.length+" 篇笔记？\n同 ID 的笔记会被覆盖。\n备份不含原曲文件，导入后需要重新选。")) return;
-  for(const n of data.notes) await Store.saveNote(Object.assign({},n,{loops:n.loops||[]}));
+  for(const n of data.notes) await Store.saveNote(Object.assign({},n,{loops:n.loops||[], tags:n.tags||[]}));
   for(const r of (data.recs||[])){
     try{
       await Store.putRec({id:r.id,noteId:r.noteId,paraIndex:r.paraIndex,full:!!r.full,
@@ -2132,10 +2175,10 @@ document.addEventListener("click",async e=>{
 
   const act=t.dataset.act;
   if(act==="new"){
-    S.note={id:uid(),title:"",text:"",sourceUrl:"",loops:[],updatedAt:Date.now()};
+    S.note={id:uid(),title:"",text:"",sourceUrl:"",loops:[],tags:[],updatedAt:Date.now()};
     S.isNew=true; S.recs=[]; S.media=null;
     S.draft=""; S.draftTitle=""; S.draftUrl=""; S.draftFile=null; S.draftDropMedia=false;
-    S.draftLoops=null; S.lrcOpen=false; S.lrcText="";
+    S.draftLoops=null; S.draftTags=""; S.lrcOpen=false; S.lrcText="";
     S.route="edit"; render();
   }
   else if(act==="open") await openNote(t.dataset.id);
@@ -2150,12 +2193,29 @@ document.addEventListener("click",async e=>{
   else if(act==="restore"){
     document.getElementById("jsonpick").click();
   }
-  // 新增：切換主題
   else if(act==="theme"){
     S.theme = S.theme === 'light' ? 'dark' : 'light';
     document.documentElement.setAttribute('data-theme', S.theme);
     await Store.setKV("theme", S.theme);
-    render(); // 更新圖標
+    render();
+  }
+  // 新增：處理首頁標籤過濾
+  else if(act==="settag"){
+    S.activeTag = t.dataset.tag || null;
+    render();
+  }
+  // 新增：處理首頁快捷刪除
+  else if(act==="delnotequick"){
+    // 阻止事件冒泡被 data-act="open" 觸發
+    e.stopPropagation(); 
+    if(confirm("確定要刪除這篇筆記嗎？\n(包含所有錄音和設定，無法復原)")){
+      const id = t.dataset.id;
+      await Store.deleteNote(id);
+      S.notes = await Store.listNotes();
+      await refreshCounts();
+      render();
+      toast("筆記已刪除");
+    }
   }
   else if(act==="hidetip"){ S.showTip=false; await Store.setKV("showTip",false); render(); }
   else if(act==="togglevol"){
@@ -2171,6 +2231,7 @@ document.addEventListener("click",async e=>{
   else if(act==="edit"){
     Player.stop(); Loop.stop(); Src.pause();
     S.draft=S.note.text; S.draftTitle=S.note.title||""; S.draftUrl=S.note.sourceUrl||"";
+    S.draftTags=(S.note.tags||[]).join(", ");
     S.draftFile=null; S.draftDropMedia=false; S.draftLoops=null;
     S.lrcOpen=false; S.lrcText=""; S.route="edit"; render();
   }
@@ -2192,6 +2253,8 @@ document.addEventListener("click",async e=>{
     S.note.text=S.draft;
     S.note.title=S.draftTitle.trim();
     S.note.sourceUrl=S.draftUrl.trim();
+    // 儲存標籤（支援中英文逗號分隔，並過濾掉空白）
+    S.note.tags = S.draftTags.split(/[,，]+/).map(x=>x.trim()).filter(Boolean);
 
     if(S.isNew&&!S.note.text.trim()&&!S.note.title&&!S.note.sourceUrl&&!S.draftFile){
       S.isNew=false; leaveNote();
@@ -2211,6 +2274,7 @@ document.addEventListener("click",async e=>{
     await Store.saveNote(S.note);
     if(S.isNew){ S.isNew=false; S.notes.unshift(S.note); }
     S.draftFile=null; S.draftDropMedia=false;
+    S.draftTags="";
     S.lrcOpen=false; S.lrcText="";
     S.route="note"; S.sel=null; S.fine=null;
     const res=await repairAnchors();
@@ -2321,14 +2385,12 @@ document.addEventListener("click",async e=>{
     S.sel=null; S.active=r.full?null:r.id;
     render(); toast("贴好了");
   }
-  // 新增：下載單一錄音
   else if(act==="dlrec"){
     const r=S.recs.find(x=>x.id===t.dataset.id);
     if(!r || !r.blob) return;
     const url = URL.createObjectURL(r.blob);
     const a = document.createElement("a");
     a.href = url;
-    // 副檔名通常是 webm 或 mp4
     const ext = r.blob.type.includes("mp4") ? ".mp4" : ".webm";
     a.download = "我的跟讀_" + new Date().getTime() + ext;
     a.click();
