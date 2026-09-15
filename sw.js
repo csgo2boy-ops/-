@@ -4,7 +4,7 @@
    2. 图片/静态资源：缓存优先 (Cache First)，实现秒开。
    3. 录音和笔记存在 IndexedDB 里，跟这里的缓存无关。 */
 
-const VERSION = "v4"; // 升級版本號以觸發更新
+const VERSION = "v8"; // 升級版本號以觸發更新
 const CACHE = "readalong-" + VERSION;
 const TIMEOUT_MS = 3000; // 网络请求超时设定为 3 秒
 
