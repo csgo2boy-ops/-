@@ -1479,7 +1479,8 @@ const ICON={
   moon:'<svg class="ico" viewBox="0 0 16 16" fill="currentColor"><path d="M8 .5c.2 0 .5.1.7.2.2.1.2.4.1.6a5.5 5.5 0 0 0 4.9 7.9c.2 0 .5 0 .6-.1.2-.1.5 0 .6.2s0 .5-.2.6A7.5 7.5 0 1 1 8 .5z"/></svg>',
   sun:'<svg class="ico" viewBox="0 0 16 16" fill="currentColor"><path d="M8 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0-10V.5M8 15.5V14M14 8h1.5M.5 8H2m10.6-4.6-1.1 1.1M3.4 12.6l1.1-1.1m7.1.5-1.1-1.1M3.4 3.4l1.1 1.1"/></svg>',
   download:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v9m0 0-3-3m3 3 3-3m-6 5h6"/></svg>',
-  dots:'<svg class="ico ico-lg" viewBox="0 0 16 16" fill="currentColor"><path d="M8 4a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm0 5.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm0 5.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"/></svg>'
+  dots:'<svg class="ico ico-lg" viewBox="0 0 16 16" fill="currentColor"><path d="M8 4a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm0 5.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm0 5.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"/></svg>',
+  speaker: '<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5 3.5 6H1.5v4h2l3 2.5v-9Z"/><path d="M10 6a3 3 0 0 1 0 4M12 4a6 6 0 0 1 0 8"/></svg>'
 };
 
 const bar=()=>document.getElementById("bar");
@@ -1740,6 +1741,7 @@ function ctlFor(pi,text){
 
   if(selHere){
     out.push(`<button class="on" data-act="recsel">${ICON.mic}录${whole?"整行":selLabel(text,S.sel.start,S.sel.end)}</button>
+              <button class="ghost" data-act="speaksel" aria-label="朗读">${ICON.speaker}朗读</button>
               ${whole?"":`<span class="quo">「${esc(text.slice(S.sel.start,S.sel.end))}」</span>`}
               <button class="ghost" data-act="clearsel" aria-label="取消选择">×</button>`);
   }
@@ -2413,6 +2415,34 @@ document.addEventListener("click",async e=>{
   }
 
   else if(act==="clearsel"){ S.sel=null; S.fine=null; const s=window.getSelection(); if(s) s.removeAllRanges(); render(); }
+  
+  // 新增：朗讀發音功能
+  else if(act==="speaksel"){
+    if(S.sel){
+      const p = paras(S.note.text)[S.sel.pi] || "";
+      const textToSpeak = S.sel.start === 0 && S.sel.end === p.length ? p : p.slice(S.sel.start, S.sel.end);
+      
+      if('speechSynthesis' in window) {
+        window.speechSynthesis.cancel(); // 停止先前的發音
+        const msg = new SpeechSynthesisUtterance(textToSpeak);
+        
+        // 簡單判斷：如果包含英文字母且沒有中文字，就提示用英文口音，否則用中文
+        if(/[a-zA-Z]/.test(textToSpeak) && !/[\u4e00-\u9fa5]/.test(textToSpeak)) {
+          msg.lang = 'en-US';
+        } else {
+          msg.lang = 'zh-CN';
+        }
+        
+        // 連動底部的速度控制器
+        msg.rate = S.rate;
+        
+        window.speechSynthesis.speak(msg);
+      } else {
+        toast("你的瀏覽器不支援發音功能");
+      }
+    }
+  }
+
   else if(act==="recsel"){ if(S.sel) await beginRec({pi:S.sel.pi,start:S.sel.start,end:S.sel.end,
       full:S.sel.start===0&&S.sel.end===(paras(S.note.text)[S.sel.pi]||"").length}); }
   else if(act==="rerec"){
