@@ -223,7 +223,6 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border:none;border-ra
 .ctl button.nudge{height:26px;padding:0 8px;font-size:12px;border-radius:13px;
   color:var(--amber);border-color:var(--amber)}
 
-/* Big sync buttons */
 .ctl button.big-sync { height: 34px; font-weight: 600; padding: 0 14px; font-size: 14px; background: var(--amber); color: var(--card); border-color: var(--amber); }
 .ctl button.big-sync:hover { opacity: 0.9; }
 
@@ -437,7 +436,7 @@ async function createSampleNote() {
     id: uid(),
     title: "👋 歡迎使用跟讀筆記 (範例)",
     text: "Welcome to ReadAlong!\n\nThis is a simple tool to help you practice shadowing and pronunciation.\nYou can select a sentence, mark its start and end time in the song, and practice repeatedly.\nHave fun!",
-    sourceUrl: "https://www.youtube.com/watch?v=yE2ZJpPq6fA",
+    sourceUrl: "https://www.youtube.com/watch?v=aqz-KE-bpKQ",
     loops: [
       { id: uid(), pi: 0, start: 0, end: 21, full: true, text: "Welcome to ReadAlong!", a: 0.5, b: 3.0 },
       { id: uid(), pi: 2, start: 0, end: 81, full: true, text: "This is a simple tool to help you practice shadowing and pronunciation.", a: 4.0, b: 9.0 }
@@ -1473,25 +1472,6 @@ function toast(msg,action){
   toastTimer=setTimeout(hideToast,action?UNDO_MS:TOAST_MS);
 }
 
-const ICON={
-  play:'<svg class="ico" viewBox="0 0 16 16" fill="currentColor"><path d="M4.5 2.8v10.4c0 .5.5.8 1 .5l8.2-5.2c.4-.3.4-.8 0-1L5.5 2.3c-.5-.3-1 0-1 .5z"/></svg>',
-  stop:'<svg class="ico" viewBox="0 0 16 16" fill="currentColor"><rect x="3.5" y="3.5" width="9" height="9" rx="1.6"/></svg>',
-  pause:'<svg class="ico" viewBox="0 0 16 16" fill="currentColor"><rect x="4" y="3" width="3" height="10" rx="1"/><rect x="9" y="3" width="3" height="10" rx="1"/></svg>',
-  mic:'<svg class="ico" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.6c-1.2 0-2.1 1-2.1 2.1v4.2c0 1.2 1 2.1 2.1 2.1s2.1-1 2.1-2.1V3.7c0-1.2-1-2.1-2.1-2.1z"/><path d="M12.4 7.2v.7A4.4 4.4 0 0 1 8 12.3a4.4 4.4 0 0 1-4.4-4.4v-.7H2.3v.7c0 2.9 2.2 5.3 5 5.6v1.5h1.4v-1.5c2.8-.3 5-2.7 5-5.6v-.7h-1.3z"/></svg>',
-  trash:'<svg class="ico" viewBox="0 0 16 16" fill="currentColor"><path d="M6.2 1.4h3.6c.4 0 .7.3.7.7v.7h3c.4 0 .7.3.7.7s-.3.7-.7.7h-.5l-.7 9c0 .6-.5 1-1.1 1H4.8c-.6 0-1.1-.4-1.1-1l-.7-9h-.5c-.4 0-.7-.3-.7-.7s.3-.7.7-.7h3v-.7c0-.4.3-.7.7-.7h3v-.7c0-.4.3-.7.7-.7z"/></svg>',
-  loop:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.4 6.6A4.6 4.6 0 0 1 8 3.4h4.6"/><path d="M10.8 1.6 12.6 3.4 10.8 5.2"/><path d="M12.6 9.4A4.6 4.6 0 0 1 8 12.6H3.4"/><path d="M5.2 10.8 3.4 12.6 5.2 14.4"/></svg>',
-  note:'<svg class="ico" viewBox="0 0 16 16" fill="currentColor"><path d="M13.5 1.6 5.8 3.2v7.3a2.6 2.6 0 1 0 1.3 2.2V5.6l5.1-1v4a2.6 2.6 0 1 0 1.3 2.2z"/></svg>',
-  vol:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7.4 2.6 4.2 5.4H2v5.2h2.2l3.2 2.8z" fill="currentColor"/><path d="M10.4 5.8a3 3 0 0 1 0 4.4"/><path d="M12.4 3.6a6 6 0 0 1 0 8.8"/></svg>',
-  volx:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7.4 2.6 4.2 5.4H2v5.2h2.2l3.2 2.8z" fill="currentColor"/><path d="m10.6 6.2 3.2 3.6M13.8 6.2l-3.2 3.6"/></svg>',
-  chev:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg>',
-  link:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6.5 9.5a2.6 2.6 0 0 0 3.7 0l2-2a2.6 2.6 0 0 0-3.7-3.7l-.9.9"/><path d="M9.5 6.5a2.6 2.6 0 0 0-3.7 0l-2 2a2.6 2.6 0 0 0 3.7 3.7l.9-.9"/></svg>',
-  moon:'<svg class="ico" viewBox="0 0 16 16" fill="currentColor"><path d="M8 .5c.2 0 .5.1.7.2.2.1.2.4.1.6a5.5 5.5 0 0 0 4.9 7.9c.2 0 .5 0 .6-.1.2-.1.5 0 .6.2s0 .5-.2.6A7.5 7.5 0 1 1 8 .5z"/></svg>',
-  sun:'<svg class="ico" viewBox="0 0 16 16" fill="currentColor"><path d="M8 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0-10V.5M8 15.5V14M14 8h1.5M.5 8H2m10.6-4.6-1.1 1.1M3.4 12.6l1.1-1.1m7.1.5-1.1-1.1M3.4 3.4l1.1 1.1"/></svg>',
-  download:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v9m0 0-3-3m3 3 3-3m-6 5h6"/></svg>',
-  dots:'<svg class="ico ico-lg" viewBox="0 0 16 16" fill="currentColor"><path d="M8 4a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm0 5.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm0 5.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"/></svg>',
-  speaker: '<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5 3.5 6H1.5v4h2l3 2.5v-9Z"/><path d="M10 6a3 3 0 0 1 0 4M12 4a6 6 0 0 1 0 8"/></svg>'
-};
-
 const bar=()=>document.getElementById("bar");
 const view=()=>document.getElementById("view");
 
@@ -1969,7 +1949,6 @@ function startTick(){
 }
 function stopTick(){ if(recTick){clearInterval(recTick);recTick=null;} }
 
-/* 手機長按自動選取整句話 */
 let pressTimer = null;
 let isDragging = false;
 document.addEventListener("pointerdown", e => {
@@ -1980,7 +1959,7 @@ document.addEventListener("pointerdown", e => {
     pressTimer = setTimeout(() => {
       pressTimer = null;
       if(!isDragging) doSentenceSelect(tk);
-    }, 450); // 450ms 觸發長按
+    }, 450); 
   }
 });
 document.addEventListener("pointermove", () => {
@@ -2001,25 +1980,20 @@ function doSentenceSelect(tk) {
   const eIdx = +tk.dataset.e;
   const punct = /[.,?!;:，。？！；：\n]/;
   let start = 0, end = p.length;
-  // 向前找標點
   for(let i=sIdx-1; i>=0; i--) {
     if(punct.test(p[i])) { start = i+1; break; }
   }
-  // 向後找標點
   for(let i=eIdx; i<p.length; i++) {
     if(punct.test(p[i])) { end = i; break; }
   }
-  // 去除頭尾空白
   while(start < end && p[start].trim() === '') start++;
   while(end > start && p[end-1].trim() === '') end--;
 
   if(start < end) {
     S.sel = {pi, start, end};
     S.active = null; S.fine = null;
-    if(navigator.vibrate) navigator.vibrate(40); // 觸覺回饋
+    if(navigator.vibrate) navigator.vibrate(40); 
     render();
-    
-    // 清除原生系統的反白
     const sel = window.getSelection();
     if(sel) sel.removeAllRanges();
   }
@@ -2192,6 +2166,37 @@ async function doRestore(file){
   toast("匯入完成，請記得重新設定本地音檔。");
 }
 
+function applyLRCText(text){
+  const lrc=parseLRC(text);
+  if(!lrc.lines.length){ toast("沒讀到時間戳，確認一下格式是不是 [00:12.34] 這種"); return; }
+  if(!paras(S.draft).length){
+    const seen={}, rows=[];
+    for(const l of lrc.lines){ if(seen[l.text]) continue; seen[l.text]=1; rows.push(l.text); }
+    S.draft=rows.join("\n");
+  }
+  const list=paras(S.draft);
+  const res=lrcToLoops(lrc,list);
+  if(!res.hit){
+    toast("時間軸讀到了，但沒有一行對得上正文。檢查歌詞是不是同一個版本");
+    render(); return;
+  }
+  S.draftLoops=res.loops;
+  S.lrcOpen=false; S.lrcText="";
+  render();
+  const words=res.loops.filter(l=>!l.full).length;
+  toast("對上了 "+res.hit+"/"+res.total+" 行"+(words?"，另有 "+words+" 個詞級時間點":"")+"，按「完成」生效");
+}
+async function doExportLRC(){
+  const txt=buildLRC();
+  const blob=new Blob([txt],{type:"text/plain;charset=utf-8"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download=(noteTitle(S.note).replace(/[\\/:*?"<>|]/g,"_"))+".lrc";
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  toast("導出了 "+loops().filter(l=>l.full).length+" 行時間軸");
+}
+
 document.getElementById("filepick").addEventListener("change",e=>{
   const f=e.target.files&&e.target.files[0]; e.target.value="";
   if(!f) return;
@@ -2201,6 +2206,12 @@ document.getElementById("filepick").addEventListener("change",e=>{
 document.getElementById("jsonpick").addEventListener("change",async e=>{
   const f=e.target.files&&e.target.files[0]; e.target.value="";
   if(f) await doRestore(f);
+});
+document.getElementById("lrcpick").addEventListener("change",async e=>{
+  const f=e.target.files&&e.target.files[0]; e.target.value="";
+  if(!f) return;
+  try{ applyLRCText(await f.text()); }
+  catch(_){ toast("這個檔案無法讀取"); }
 });
 
 document.addEventListener("click",async e=>{
@@ -2299,7 +2310,7 @@ document.addEventListener("click",async e=>{
   }
   else if(act==="delnotequick"){
     e.stopPropagation(); 
-    if(confirm("確定要刪除這篇筆記嗎？\n(包含所有錄音與設定，刪除後無法復原)")){
+    if(confirm("確定要刪除這篇筆記嗎？\n(包含所有錄音和設定，無法復原)")){
       const id = t.dataset.id;
       await Store.deleteNote(id);
       S.notes = await Store.listNotes();
@@ -2336,11 +2347,20 @@ document.addEventListener("click",async e=>{
   }
   else if(act==="pickfile") document.getElementById("filepick").click();
   else if(act==="dropfile"){ S.draftFile=null; S.draftDropMedia=true; render(); }
+  else if(act==="picklrc") document.getElementById("lrcpick").click();
+  else if(act==="togglelrc"){ S.lrcOpen=!S.lrcOpen; render(); }
+  else if(act==="applylrc"){ applyLRCText(S.lrcText); }
+  else if(act==="exportlrc") await doExportLRC();
   else if(act==="save"){
     const oldUrl=S.note.sourceUrl||"", hadMedia=!!S.media;
     S.note.text=S.draft;
     S.note.title=S.draftTitle.trim();
-    S.note.sourceUrl=S.draftUrl.trim();
+    
+    // 過濾 javascript: 惡意連結
+    let cleanUrl = S.draftUrl.trim();
+    if(cleanUrl.toLowerCase().startsWith('javascript:')) cleanUrl = "";
+    S.note.sourceUrl = cleanUrl;
+
     S.note.tags = S.draftTags;
     S.note.ttsLang = document.getElementById("ttslang").value;
 
@@ -2460,7 +2480,6 @@ document.addEventListener("click",async e=>{
         if (S.note.ttsLang) {
           msg.lang = S.note.ttsLang;
         } else {
-          // 自動判斷：若有英文字母且無中文字則當作英文
           if(/[a-zA-Z]/.test(textToSpeak) && !/[\u4e00-\u9fa5]/.test(textToSpeak)) msg.lang = 'en-US';
           else msg.lang = 'zh-TW';
         }
@@ -2570,23 +2589,39 @@ document.addEventListener("keydown",async e=>{
 
 window.addEventListener("pagehide",()=>{Practice.stop();stopTick();Player.stop();Loop.stop();Recorder.release();Src.clear()});
 
+function isStandalone(){
+  return window.matchMedia("(display-mode: standalone)").matches||window.navigator.standalone===true;
+}
+function isIOS(){
+  return /iPad|iPhone|iPod/.test(navigator.userAgent)||
+    (navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+}
 async function openSheet(first){
   const box=document.getElementById("sheetbox");
   
-  // 計算已使用空間
   let storageInfo = "";
   if(navigator.storage && navigator.storage.estimate) {
     try {
       const est = await navigator.storage.estimate();
-      const mb = (est.usage / 1024 / 1024).toFixed(1);
-      const limitMb = (est.quota / 1024 / 1024).toFixed(1);
+      const mb = (est.usage / 1048576).toFixed(1);
+      const limitStr = est.quota > 1073741824 
+        ? (est.quota / 1073741824).toFixed(1) + ' GB' 
+        : (est.quota / 1048576).toFixed(0) + ' MB';
       storageInfo = `<div style="margin-top:16px; padding:10px; background:var(--sel); border-radius:8px;">
-        <span style="font-size:13px; color:var(--mark);">💾 儲存空間狀態：目前已使用約 <b>${mb} MB</b> (可用額度: ${limitMb} MB)。<br>
+        <span style="font-size:13px; color:var(--mark);">💾 儲存空間狀態：目前已使用約 <b>${mb} MB</b> (可用額度: ${limitStr})。<br>
         若容量接近上限，請考慮匯出備份並刪除舊筆記。</span>
       </div>`;
     } catch(e) {}
   }
 
+  const installTip=isStandalone()?"" :
+    isIOS()
+      ? `<h3>裝到主畫面</h3>
+         <p>用 Safari 打開這一頁，點下方中間的<b>分享</b>按鈕，往下找到
+         <b>「加入主畫面」</b>。之後桌面上會多一個圖示，打開是全螢幕的，跟一般 App 一樣。</p>`
+      : `<h3>裝到主畫面</h3>
+         <p>Chrome 網址列右側通常會出現一個安裝圖示，或者從右上角選單裡找
+         <b>「安裝應用程式」</b>。裝好後可以脫離瀏覽器視窗單獨打開。</p>`;
   box.innerHTML=`
     <h2>關於跟讀筆記</h2>
     <p>這是一款語言學習輔助工具：將歌詞或課文切割為小段，標註原曲位置反覆聆聽，並錄下自己的發音進行對比。</p>
@@ -2604,6 +2639,7 @@ async function openSheet(first){
 
     <h3>版權與免責聲明</h3>
     <p>本站不提供任何文字、音樂或影音內容。所有內容皆由使用者自行輸入或匯入。使用外部連結（如 YouTube）皆為官方嵌入播放器，遵守各平台服務條款。</p>
+    ${installTip}
     ${storageInfo}
 
     <button class="close" data-act="closesheet">${first?"我瞭解了，開始使用":"關閉"}</button>`;
@@ -2685,11 +2721,10 @@ function hideNewVer(){ document.getElementById("newver").classList.remove("show"
   S.notes=await Store.listNotes();
   await refreshCounts();
   
-  // 新手引導：如果是第一次開啟，生成範例筆記
   const seen=await Store.getKV("seenIntro",false);
   if(!seen && S.notes.length === 0){
     await createSampleNote();
-    S.notes=await Store.listNotes(); // 重新讀取
+    S.notes=await Store.listNotes(); 
   }
 
   render();
